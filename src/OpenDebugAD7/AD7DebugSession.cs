@@ -1432,7 +1432,7 @@ namespace OpenDebugAD7
                         levels = Math.Min((int)frameEnumInfo.TotalFrames - startFrame, levels);
                     }
 
-                    FRAMEINFO[] frameInfoArray = new FRAMEINFO[levels];
+                    var frameInfoArray = new FRAMEINFO[levels];
                     uint framesFetched = 0;
                     frameEnumInfo.FrameEnum.Next((uint)frameInfoArray.Length, frameInfoArray, ref framesFetched);
                     frameEnumInfo.CurrentPosition += framesFetched;
@@ -1475,6 +1475,19 @@ namespace OpenDebugAD7
                             ModuleId = moduleId
                         });
                     }
+
+                    Parallel.ForEach(response.StackFrames, frame =>
+                    {
+                        if (frame.Source == null)
+                            return;
+                        var task = new Task<bool>(() => File.Exists(frame.Source.Path));
+                        task.Start();
+                        if (task.Wait(500) && !task.Result)
+                        {
+                            // mark the stack frame to be skipped by default
+                            frame.Source.PresentationHint = Source.PresentationHintValue.Deemphasize;
+                        }
+                    });
 
                     response.TotalFrames = (int)frameEnumInfo.TotalFrames;
                 }
