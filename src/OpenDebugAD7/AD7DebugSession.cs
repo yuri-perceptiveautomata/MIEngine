@@ -1305,198 +1305,224 @@ namespace OpenDebugAD7
             responder.SetResponse(new PauseResponse());
         }
 
-        protected override void HandleStackTraceRequestAsync(IRequestResponder<StackTraceArguments, StackTraceResponse> responder)
+        protected override async void HandleStackTraceRequestAsync(IRequestResponder<StackTraceArguments, StackTraceResponse> responder)
         {
-            int threadReference = responder.Arguments.ThreadId;
-            int startFrame = responder.Arguments.StartFrame.GetValueOrDefault(0);
-            int levels = responder.Arguments.Levels.GetValueOrDefault(0);
-
-            StackTraceResponse response = new StackTraceResponse()
+            try
             {
-                TotalFrames = 0
-            };
+                int threadReference = responder.Arguments.ThreadId;
+                int startFrame = responder.Arguments.StartFrame.GetValueOrDefault(0);
+                int levels = responder.Arguments.Levels.GetValueOrDefault(0);
 
-            // Make sure we are stopped and receiving valid input or else return an empty stack trace
-            if (m_isStopped && startFrame >= 0 && levels >= 0)
-            {
-                ThreadFrameEnumInfo frameEnumInfo = null;
-                IDebugThread2 thread;
-                lock (m_threads)
+                StackTraceResponse response = new StackTraceResponse()
                 {
-                    if (m_threads.TryGetValue(threadReference, out thread))
+                    TotalFrames = 0
+                };
+
+                // Make sure we are stopped and receiving valid input or else return an empty stack trace
+                if (m_isStopped && startFrame >= 0 && levels >= 0)
+                {
+                    ThreadFrameEnumInfo frameEnumInfo = null;
+                    IDebugThread2 thread;
+                    lock (m_threads)
                     {
-                        enum_FRAMEINFO_FLAGS flags = enum_FRAMEINFO_FLAGS.FIF_FUNCNAME | // need a function name
-                                                        enum_FRAMEINFO_FLAGS.FIF_FRAME | // need a frame object
-                                                        enum_FRAMEINFO_FLAGS.FIF_FLAGS |
-                                                        enum_FRAMEINFO_FLAGS.FIF_DEBUG_MODULEP;
-
-                        uint radix = Constants.EvaluationRadix;
-
-                        if (responder.Arguments.Format != null)
+                        if (m_threads.TryGetValue(threadReference, out thread))
                         {
-                            StackFrameFormat format = responder.Arguments.Format;
+                            enum_FRAMEINFO_FLAGS flags = enum_FRAMEINFO_FLAGS.FIF_FUNCNAME | // need a function name
+                                                            enum_FRAMEINFO_FLAGS.FIF_FRAME | // need a frame object
+                                                            enum_FRAMEINFO_FLAGS.FIF_FLAGS |
+                                                            enum_FRAMEINFO_FLAGS.FIF_DEBUG_MODULEP;
 
-                            if (format.Hex == true)
+                            uint radix = Constants.EvaluationRadix;
+
+                            if (responder.Arguments.Format != null)
                             {
-                                radix = 16;
+                                StackFrameFormat format = responder.Arguments.Format;
+
+                                if (format.Hex == true)
+                                {
+                                    radix = 16;
+                                }
+
+                                if (format.Line == true)
+                                {
+                                    flags |= enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_LINES;
+                                }
+
+                                if (format.Module == true)
+                                {
+                                    flags |= enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_MODULE;
+                                }
+
+                                if (format.Parameters == true)
+                                {
+                                    flags |= enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_ARGS;
+                                }
+
+                                if (format.ParameterNames == true)
+                                {
+                                    flags |= enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_ARGS_NAMES;
+                                }
+
+                                if (format.ParameterTypes == true)
+                                {
+                                    flags |= enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_ARGS_TYPES;
+                                }
+
+                                if (format.ParameterValues == true)
+                                {
+                                    flags |= enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_ARGS_VALUES;
+                                }
+                            }
+                            else
+                            {
+                                // No formatting flags provided in the request - use the default format, which includes the module name and argument names / types
+                                flags |= enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_MODULE |
+                                            enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_ARGS |
+                                            enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_ARGS_TYPES |
+                                            enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_ARGS_NAMES;
                             }
 
-                            if (format.Line == true)
+                            if (m_settingsCallback != null)
                             {
-                                flags |= enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_LINES;
+                                // MIEngine generally gets the radix from IDebugSettingsCallback110 rather than using the radix passed
+                                m_settingsCallback.Radix = radix;
                             }
 
-                            if (format.Module == true)
-                            {
-                                flags |= enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_MODULE;
-                            }
+                            ErrorBuilder eb = new ErrorBuilder(() => AD7Resources.Error_Scenario_StackTrace);
 
-                            if (format.Parameters == true)
+                            try
                             {
-                                flags |= enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_ARGS;
-                            }
+                                eb.CheckHR(thread.EnumFrameInfo(flags, radix, out IEnumDebugFrameInfo2 frameEnum));
+                                eb.CheckHR(frameEnum.GetCount(out uint totalFrames));
 
-                            if (format.ParameterNames == true)
-                            {
-                                flags |= enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_ARGS_NAMES;
+                                frameEnumInfo = new ThreadFrameEnumInfo(frameEnum, totalFrames);
                             }
-
-                            if (format.ParameterTypes == true)
+                            catch (AD7Exception ex)
                             {
-                                flags |= enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_ARGS_TYPES;
-                            }
-
-                            if (format.ParameterValues == true)
-                            {
-                                flags |= enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_ARGS_VALUES;
+                                responder.SetError(new ProtocolException(ex.Message, ex));
+                                return;
                             }
                         }
                         else
                         {
-                            // No formatting flags provided in the request - use the default format, which includes the module name and argument names / types
-                            flags |= enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_MODULE |
-                                        enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_ARGS |
-                                        enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_ARGS_TYPES |
-                                        enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_ARGS_NAMES;
-                        }
-
-                        if (m_settingsCallback != null)
-                        {
-                            // MIEngine generally gets the radix from IDebugSettingsCallback110 rather than using the radix passed
-                            m_settingsCallback.Radix = radix;
-                        }
-
-                        ErrorBuilder eb = new ErrorBuilder(() => AD7Resources.Error_Scenario_StackTrace);
-
-                        try
-                        {
-                            eb.CheckHR(thread.EnumFrameInfo(flags, radix, out IEnumDebugFrameInfo2 frameEnum));
-                            eb.CheckHR(frameEnum.GetCount(out uint totalFrames));
-
-                            frameEnumInfo = new ThreadFrameEnumInfo(frameEnum, totalFrames);
-                        }
-                        catch (AD7Exception ex)
-                        {
-                            responder.SetError(new ProtocolException(ex.Message, ex));
+                            // Invalid thread specified
+                            responder.SetError(new ProtocolException(String.Format(CultureInfo.CurrentCulture, AD7Resources.Error_PropertyInvalid, StackTraceRequest.RequestType, "threadId")));
                             return;
                         }
                     }
-                    else
-                    {
-                        // Invalid thread specified
-                        responder.SetError(new ProtocolException(String.Format(CultureInfo.CurrentCulture, AD7Resources.Error_PropertyInvalid, StackTraceRequest.RequestType, "threadId")));
-                        return;
-                    }
-                }
 
-                if (startFrame < frameEnumInfo.TotalFrames)
-                {
-                    if (startFrame != frameEnumInfo.CurrentPosition)
+                    if (startFrame < frameEnumInfo.TotalFrames)
                     {
-                        frameEnumInfo.FrameEnum.Reset();
-                        frameEnumInfo.CurrentPosition = (uint)startFrame;
-
-                        if (startFrame > 0)
+                        if (startFrame != frameEnumInfo.CurrentPosition)
                         {
-                            frameEnumInfo.FrameEnum.Skip((uint)startFrame);
-                        }
-                    }
+                            frameEnumInfo.FrameEnum.Reset();
+                            frameEnumInfo.CurrentPosition = (uint)startFrame;
 
-                    if (levels == 0)
-                    {
-                        // take the rest of the stack frames
-                        levels = (int)frameEnumInfo.TotalFrames - startFrame;
-                    }
-                    else
-                    {
-                        levels = Math.Min((int)frameEnumInfo.TotalFrames - startFrame, levels);
-                    }
-
-                    var frameInfoArray = new FRAMEINFO[levels];
-                    uint framesFetched = 0;
-                    frameEnumInfo.FrameEnum.Next((uint)frameInfoArray.Length, frameInfoArray, ref framesFetched);
-                    frameEnumInfo.CurrentPosition += framesFetched;
-
-                    for (int i = 0; i < framesFetched; i++)
-                    {
-                        // TODO: annotated frames?
-                        var frameInfo = frameInfoArray[i];
-                        IDebugStackFrame2 frame = frameInfo.m_pFrame;
-
-                        int frameReference = 0;
-                        TextPositionTuple textPosition = TextPositionTuple.Nil;
-
-                        if (frame != null)
-                        {
-                            frameReference = m_frameHandles.Create(frame);
-                            textPosition = TextPositionTuple.GetTextPositionOfFrame(m_pathConverter, frame) ?? TextPositionTuple.Nil;
-                        }
-
-                        int? moduleId = null;
-                        IDebugModule2 module = frameInfo.m_pModule;
-                        if (module != null)
-                        {
-                            lock (m_moduleMap)
+                            if (startFrame > 0)
                             {
-                                if (m_moduleMap.TryGetValue(module, out int mapModuleId))
+                                frameEnumInfo.FrameEnum.Skip((uint)startFrame);
+                            }
+                        }
+
+                        if (levels == 0)
+                        {
+                            // take the rest of the stack frames
+                            levels = (int)frameEnumInfo.TotalFrames - startFrame;
+                        }
+                        else
+                        {
+                            levels = Math.Min((int)frameEnumInfo.TotalFrames - startFrame, levels);
+                        }
+
+                        var frameInfoArray = new FRAMEINFO[levels];
+                        uint framesFetched = 0;
+                        frameEnumInfo.FrameEnum.Next((uint)frameInfoArray.Length, frameInfoArray, ref framesFetched);
+                        frameEnumInfo.CurrentPosition += framesFetched;
+
+                        for (int i = 0; i < framesFetched; i++)
+                        {
+                            // TODO: annotated frames?
+                            var frameInfo = frameInfoArray[i];
+                            IDebugStackFrame2 frame = frameInfo.m_pFrame;
+
+                            int frameReference = 0;
+                            TextPositionTuple textPosition = TextPositionTuple.Nil;
+
+                            if (frame != null)
+                            {
+                                frameReference = m_frameHandles.Create(frame);
+                                textPosition = TextPositionTuple.GetTextPositionOfFrame(m_pathConverter, frame) ?? TextPositionTuple.Nil;
+                            }
+
+                            int? moduleId = null;
+                            IDebugModule2 module = frameInfo.m_pModule;
+                            if (module != null)
+                            {
+                                lock (m_moduleMap)
                                 {
-                                    moduleId = mapModuleId;
+                                    if (m_moduleMap.TryGetValue(module, out int mapModuleId))
+                                    {
+                                        moduleId = mapModuleId;
+                                    }
                                 }
                             }
+
+                            response.StackFrames.Add(new ProtocolMessages.StackFrame()
+                            {
+                                Id = frameReference,
+                                Name = frameInfo.m_bstrFuncName,
+                                Source = textPosition.Source,
+                                Line = textPosition.Line,
+                                Column = textPosition.Column,
+                                ModuleId = moduleId
+                            });
                         }
 
-                        response.StackFrames.Add(new ProtocolMessages.StackFrame()
+                        if (!IsClientVS)
                         {
-                            Id = frameReference,
-                            Name = frameInfo.m_bstrFuncName,
-                            Source = textPosition.Source,
-                            Line = textPosition.Line,
-                            Column = textPosition.Column,
-                            ModuleId = moduleId
-                        });
-                    }
-
-                    if (!IsClientVS)
-                    {
-                        Parallel.ForEach(response.StackFrames, frame =>
-                        {
-                            if (frame.Source == null)
-                                return;
-                            var task = new Task<bool>(() => File.Exists(frame.Source.Path));
-                            task.Start();
-                            if (task.Wait(500) && !task.Result)
+                            CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+                            try
                             {
-                                // mark the stack frame to be skipped by default
-                                frame.Source.PresentationHint = Source.PresentationHintValue.Deemphasize;
+                                CancellationToken cancellationToken = cancellationTokenSource.Token;
+                                Task[] frameTasks = response.StackFrames.Select(frame => Task.Run(() =>
+                                {
+                                    cancellationToken.ThrowIfCancellationRequested();
+                                    if (frame.Source != null && !File.Exists(frame.Source.Path))
+                                    {
+                                        cancellationToken.ThrowIfCancellationRequested();
+                                        // mark the stack frame to be skipped by default
+                                        frame.Source.PresentationHint = Source.PresentationHintValue.Deemphasize;
+                                    }
+                                })).ToArray();
+
+                                Task allFramesComplete = Task.WhenAll(frameTasks);
+                                Task timeoutTask = Task.Delay(20000, cancellationToken);
+                                try
+                                {
+                                    await Task.WhenAny(allFramesComplete, timeoutTask);
+                                }
+                                catch (Exception e)
+                                {
+                                    Debug.Fail("Ignoring exception computing frame state: " + e.ToString());
+                                }
                             }
-                        });
+                            finally
+                            {
+                                cancellationTokenSource.Cancel();
+                                cancellationTokenSource.Dispose();
+                            }
+                        }
+
+                        response.TotalFrames = (int)frameEnumInfo.TotalFrames;
                     }
-
-                    response.TotalFrames = (int)frameEnumInfo.TotalFrames;
                 }
-            }
 
-            responder.SetResponse(response);
+                responder.SetResponse(response);
+            }
+            catch (Exception e)
+            {
+                responder.SetError(new ProtocolException(e.ToString()));
+            }
         }
 
         protected override void HandleScopesRequestAsync(IRequestResponder<ScopesArguments, ScopesResponse> responder)
