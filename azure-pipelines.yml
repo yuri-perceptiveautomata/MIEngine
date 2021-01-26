@@ -5,11 +5,6 @@ jobs:
 - job: Debug
   pool: 'Hosted Windows 2019 with VS2019'
   steps:
-  - task: NuGetCommand@2
-    inputs:
-      command: 'restore'
-      feedsToUse: 'config'
-      nugetConfigPath: '$(Build.SourcesDirectory)\src\.nuget\NuGet.config'
   - task: MSBuild@1
     inputs:
       solution: '$(Build.SourcesDirectory)\src\MIDebugEngine.sln'
@@ -30,11 +25,6 @@ jobs:
 - job: Release
   pool: 'Hosted Windows 2019 with VS2019'
   steps:
-  - task: NuGetCommand@2
-    inputs:
-      command: 'restore'
-      feedsToUse: 'config'
-      nugetConfigPath: '$(Build.SourcesDirectory)\src\.nuget\NuGet.config'
   - task: MSBuild@1
     inputs:
       solution: '$(Build.SourcesDirectory)\src\MIDebugEngine.sln'
@@ -55,11 +45,10 @@ jobs:
 - job: DesktopDebug
   pool: 'Hosted Windows 2019 with VS2019'
   steps:
-  - task: NuGetCommand@2
+  - task: UseDotNet@2
     inputs:
-      command: 'restore'
-      feedsToUse: 'config'
-      nugetConfigPath: '$(Build.SourcesDirectory)\src\.nuget\NuGet.config'
+      version: '5.0.x'
+      packageType: runtime
   - task: MSBuild@1
     inputs:
       solution: '$(Build.SourcesDirectory)\src\MIDebugEngine.sln'
@@ -68,11 +57,10 @@ jobs:
 - job: DesktopRelease
   pool: 'Hosted Windows 2019 with VS2019'
   steps:
-  - task: NuGetCommand@2
+  - task: UseDotNet@2
     inputs:
-      command: 'restore'
-      feedsToUse: 'config'
-      nugetConfigPath: '$(Build.SourcesDirectory)\src\.nuget\NuGet.config'
+      version: '5.0.x'
+      packageType: runtime
   - task: MSBuild@1
     inputs:
       solution: '$(Build.SourcesDirectory)\src\MIDebugEngine.sln'
@@ -83,11 +71,6 @@ jobs:
   variables:
     TEST_LAB_BUILD: 'true'
   steps:
-  - task: NuGetCommand@2
-    inputs:
-      command: 'restore'
-      feedsToUse: 'config'
-      nugetConfigPath: '$(Build.SourcesDirectory)\src\.nuget\NuGet.config'
   - task: MSBuild@1
     inputs:
       solution: '$(Build.SourcesDirectory)\src\MIDebugEngine.sln'
@@ -98,12 +81,31 @@ jobs:
   variables:
     TEST_LAB_BUILD: 'true'
   steps:
-  - task: NuGetCommand@2
-    inputs:
-      command: 'restore'
-      feedsToUse: 'config'
-      nugetConfigPath: '$(Build.SourcesDirectory)\src\.nuget\NuGet.config'
   - task: MSBuild@1
     inputs:
       solution: '$(Build.SourcesDirectory)\src\MIDebugEngine.sln'
       configuration: 'Lab.Debug'
+
+- job: LinuxDesktopDebug
+  pool: "Hosted Ubuntu 1604"
+  steps:
+  - task: UseDotNet@2
+    inputs:
+      version: '5.0.x'
+      packageType: runtime
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: 'build'
+      arguments: '$(Build.SourcesDirectory)\src\MIDebugEngine.sln --configuration Desktop.Debug'
+
+- job: LinuxDesktopRelease
+  pool: "Hosted Ubuntu 1604"
+  steps:
+  - task: UseDotNet@2
+    inputs:
+      version: '5.0.x'
+      packageType: runtime
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: 'build'
+      arguments: '$(Build.SourcesDirectory)\src\MIDebugEngine.sln --configuration Desktop.Release'

@@ -237,7 +237,7 @@ namespace Microsoft.MIDebugEngine.Natvis
         {
             try
             {
-                XmlSerializer serializer = new XmlSerializer(typeof(AutoVisualizer));
+                System.Xml.Serialization.XmlSerializer serializer = new System.Xml.Serialization.XmlSerializer(typeof(AutoVisualizer));
                 if (!File.Exists(path))
                 {
                     _process.WriteOutput(String.Format(CultureInfo.CurrentCulture, ResourceStrings.FileNotFound, path));

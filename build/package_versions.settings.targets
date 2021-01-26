@@ -44,5 +44,6 @@
         <Microsoft_VisualStudio_TextManager_Interop_Version>16.7.30328.74</Microsoft_VisualStudio_TextManager_Interop_Version>
         <Microsoft_VSSDK_BuildTools_Version>16.8.3038</Microsoft_VSSDK_BuildTools_Version>
         <envDTE_Version>8.0.2</envDTE_Version>
+        <Microsoft_XmlSerializer_Generator_Version>5.0.0</Microsoft_XmlSerializer_Generator_Version>
     </PropertyGroup>
 </Project>

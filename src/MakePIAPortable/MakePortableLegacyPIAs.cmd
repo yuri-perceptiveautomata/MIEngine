@@ -43,7 +43,7 @@ echo Processing %1...
 if exist %PIAOutDir%\%~n1.dll del %PIAOutDir%\%~n1.dll
 if exist %PIAOutDir%\%~n1.dll echo ERROR: Unable to remove %PIAOutDir%\%~n1.dll & set PIAERROR=1& goto eof
 
-%ILDAsmPath% %1 /NOBAR /out:%IntDir%\%~n1.il
+%ILDAsmPath% %1 /out:%IntDir%\%~n1.il
 if NOT "%ERRORLEVEL%"=="0" echo ERROR: Failed to disassembly %1.& set PIAERROR=1& goto eof
 
 MakePIAPortable.exe %IntDir%\%~n1.il %IntDir%\%~n1-portable.il

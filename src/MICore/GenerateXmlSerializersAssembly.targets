@@ -5,9 +5,8 @@
   <Target Name="BeforeBuild"
           Inputs="LaunchOptions.xsd"
           Outputs="$(IntermediateOutputPath)LaunchOptions.cs"
-          Condition="'$(Lab)' == 'false'">
+          Condition="'$(Lab)' == 'false' AND '$(SDK40ToolsPath)'!=''">
     <!-- First validate the tools we need are where we expect -->
-    <Error Condition="'$(SDK40ToolsPath)'==''" Text="SDK40ToolsPath msbuild property is undefined." />
     <Error Condition="!Exists('$(SDK40ToolsPath)xsd.exe')" Text="xsd.exe does not exist in the SDK40ToolsPath ($(SDK40ToolsPath)xsd.exe)." />
 
     <!-- Convert the .xsd -> types -->
@@ -76,7 +75,8 @@
   <Target Name="GenerateXmlSerializersAssembly"
           AfterTargets="Compile"
           Inputs="$(XsdCodeFile);$(AssemblyOriginatorKeyFile)"
-          Outputs="$(IntermediateOutputPath)sgen/$(AssemblyName).XmlSerializers.dll">
+          Outputs="$(IntermediateOutputPath)sgen/$(AssemblyName).XmlSerializers.dll"
+          Condition="'$(SDK40ToolsPath)'!=''">
     <PropertyGroup>
       <!-- 
         If TEST_LAB_BUILD is set, we are public signing. 

@@ -3,7 +3,8 @@
   <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.props" />
 
   <PropertyGroup>
-    <TargetFramework>net462</TargetFramework>
+    <TargetFramework Condition="'$(IsXPlat)'=='false'">net462</TargetFramework>
+    <TargetFramework Condition="'$(IsXPlat)'=='true'">net5.0</TargetFramework>
     <RootNamespace>Microsoft.MIDebugPackage</RootNamespace>
     <AssemblyName>Microsoft.MIDebugPackage</AssemblyName>
     <OutputPath>$(MIDefaultOutputPath)</OutputPath>
@@ -11,6 +12,7 @@
 
   <PropertyGroup>
     <GeneratePkgDefFile>true</GeneratePkgDefFile>
+    <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
 
     <!-- VSIX Options -->
     <UseCodebase>true</UseCodebase>
@@ -92,8 +94,9 @@
       <IncludeAssets>compile</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="$(Microsoft_VSSDK_BuildTools_Version)" GeneratePathProperty="true"/>
+    <PackageReference Condition="'$(IsXPlat)'=='false'" Include="Microsoft.VSSDK.BuildTools" Version="$(Microsoft_VSSDK_BuildTools_Version)" GeneratePathProperty="true"/>
     <PackageReference Include="Microsoft.VisualStudioEng.MicroBuild.Core" Version="$(Microsoft_VisualStudioEng_MicroBuild_Core_Version)" GeneratePathProperty="true"/>
+    <PackageReference Include="System.Resources.Extensions" Version="4.6.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -183,7 +186,7 @@
   <ItemGroup Label="MIDebugEngine for both VS and XPlat">
     <DropSignedFile Include="$(OutDir)\Microsoft.MICore.dll" />
     <DropUnsignedFile Include="$(OutDir)\Microsoft.MICore.pdb" />
-    <DropSignedFile Include="$(OutDir)\Microsoft.MICore.XmlSerializers.dll" />
+    <DropSignedFile Condition="'$(IsXPlat)'=='false'" Include="$(OutDir)\Microsoft.MICore.XmlSerializers.dll" />
     <DropSignedFile Include="$(OutDir)\Microsoft.MIDebugEngine.dll" />
     <DropUnsignedFile Include="$(OutDir)\Microsoft.MIDebugEngine.pdb" />
   </ItemGroup>
@@ -210,7 +213,7 @@
     <DropUnsignedFile Include="$(OutDir)\Microsoft.SSHDebugPS.pkgdef" />
     <DropUnsignedFile Include="$(OutDir)\OpenFolderSchema.json" />
   </ItemGroup>
-  <ItemGroup Label="Debug Files and Scripts for XPlat" Condition="'$(IsXPlat)' == 'true'">
+  <ItemGroup Label="Debug Files and Scripts for XPlat" Condition="'$(IsXPlat)' == 'true' AND $([MSBuild]::IsOSPlatform('windows'))">
     <DropUnsignedFile Include="$(OutDir)\osxlaunchhelper.scpt" />
     <DropUnsignedFile Include="$(OutDir)\Microsoft.MICore.dll.mdb" />
     <DropUnsignedFile Include="$(OutDir)\Microsoft.MIDebugEngine.dll.mdb" />

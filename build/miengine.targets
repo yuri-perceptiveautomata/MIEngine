@@ -12,12 +12,12 @@
     <BuildDependsOn>$(BuildDependsOn);GenerateMonoSymbols</BuildDependsOn>
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('windows'))">
     <PackageReference Include="Mono.Unofficial.pdb2mdb" Version="4.2.3.4" GeneratePathProperty="true" />
   </ItemGroup>
 
   <Target Name="GenerateMonoSymbols"
-          Condition="'$(IsXPlat)' == 'true' AND '$(ShouldGenerateMonoSymbols)' == 'true'"
+          Condition="'$(IsXPlat)' == 'true' AND '$(ShouldGenerateMonoSymbols)' == 'true' AND $([MSBuild]::IsOSPlatform('windows'))"
           AfterTargets="Build" >
     <!-- If we're building the Desktop config on Windows, run pdb2mdb to generate Mono symbols as well -->
     <Exec Command="&quot;$(PkgMono_Unofficial_pdb2mdb)\tools\pdb2mdb.exe&quot; &quot;$(TargetPath)&quot;" />

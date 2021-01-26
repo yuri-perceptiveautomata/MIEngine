@@ -182,7 +182,7 @@ namespace Microsoft.MIDebugPackage
                 // When using the options file, we want to allow the executable to be just a logical name, but if
                 // one enters a real path, we should make sure it isn't mistyped. If the path contains a slash, we assume it 
                 // is meant to be a real path so enforce that it exists
-                checkExecutableExists = (executable.IndexOf('\\') >= 0);
+                checkExecutableExists = (executable.IndexOf("\\", StringComparison.Ordinal) >= 0);
 
                 if (string.IsNullOrWhiteSpace(optionsFilePath))
                     throw new ArgumentException("Value expected for '/OptionsFile' option");
