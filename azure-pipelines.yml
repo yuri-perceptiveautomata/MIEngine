@@ -64,6 +64,8 @@ jobs:
     inputs:
       solution: '$(Build.SourcesDirectory)\src\MIDebugEngine.sln'
       configuration: 'Desktop.Debug'
+  - publish: $(Build.BinariesDirectory)
+    artifact: 'Desktop.Debug_bin'
 
 - job: DesktopRelease
   pool: 'Hosted Windows 2019 with VS2019'
@@ -77,6 +79,8 @@ jobs:
     inputs:
       solution: '$(Build.SourcesDirectory)\src\MIDebugEngine.sln'
       configuration: 'Desktop.Release'
+  - publish: $(Build.BinariesDirectory)
+    artifact: 'Desktop.Release_bin'
 
 - job: LabRelease
   pool: 'Hosted Windows 2019 with VS2019'
