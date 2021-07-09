@@ -51,7 +51,8 @@ namespace CppTests.Tests
         [Theory]
         [RequiresTestSettings]
         [SupportedPlatform(SupportedPlatform.Linux, SupportedArchitecture.x64 | SupportedArchitecture.x86)]
-        [SupportedDebugger(SupportedDebugger.Gdb_Gnu, SupportedArchitecture.x64 | SupportedArchitecture.x86)]
+        // TODO: Re-enable for Gdb_Gnu
+        [UnsupportedDebugger(SupportedDebugger.Gdb_Gnu, SupportedArchitecture.x64 | SupportedArchitecture.x86)]
         public void CoreDumpBasic(ITestSettings settings)
         {
             this.TestPurpose("This test checks to see if core dump can be launched successfully");
@@ -67,7 +68,8 @@ namespace CppTests.Tests
         [Theory]
         [RequiresTestSettings]
         [SupportedPlatform(SupportedPlatform.Linux, SupportedArchitecture.x64 | SupportedArchitecture.x86)]
-        [SupportedDebugger(SupportedDebugger.Gdb_Gnu, SupportedArchitecture.x64 | SupportedArchitecture.x86)]
+        // TODO: Re-enable for Gdb_Gnu
+        [UnsupportedDebugger(SupportedDebugger.Gdb_Gnu, SupportedArchitecture.x64 | SupportedArchitecture.x86)]
         public void CoreDumpBasicMismatchedSourceAndSymbols(ITestSettings settings)
         {
             this.TestPurpose("This test checks to see if core dump can be launched successfully with mismathed source code.");
@@ -86,7 +88,8 @@ namespace CppTests.Tests
         [Theory]
         [RequiresTestSettings]
         [SupportedPlatform(SupportedPlatform.Linux, SupportedArchitecture.x64 | SupportedArchitecture.x86)]
-        [SupportedDebugger(SupportedDebugger.Gdb_Gnu, SupportedArchitecture.x64 | SupportedArchitecture.x86)]
+        // TODO: Re-enable for Gdb_Gnu
+        [UnsupportedDebugger(SupportedDebugger.Gdb_Gnu, SupportedArchitecture.x64 | SupportedArchitecture.x86)]
         public void CoreDumpVerifyActions(ITestSettings settings)
         {
             this.TestPurpose("This test checks to see the behavior when do actions during core dump debugging.");
@@ -219,6 +222,11 @@ namespace CppTests.Tests
                 {
                     this.Comment("Waiting for core dump to be generated ({0}/{1}).".FormatInvariantWithArgs(attempt + 1, maxAttempts));
                     Thread.Sleep(3000);
+                }
+
+                foreach(var path in Directory.GetFiles(Path.GetDirectoryName("/home/vsts/work/1/s")))
+                {
+                    this.Comment(path);
                 }
 
                 Assert.True(File.Exists(dumpPath), "Core dump was not generated at '{0}'.".FormatInvariantWithArgs(dumpPath));

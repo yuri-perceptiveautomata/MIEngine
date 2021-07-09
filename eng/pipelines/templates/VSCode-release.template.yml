@@ -8,8 +8,7 @@ steps:
 
 - template: ../steps/BuildSolution.yml
   parameters:
-    Configuration: 'Desktop.Release'
-    BuildArguments: '/p:Lab=$(Lab)'
+    Configuration: 'Lab.Release'
 
 - template: ../steps/CollectAndPublishBinaries.yml
   parameters:
