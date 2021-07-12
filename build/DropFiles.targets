@@ -3,7 +3,7 @@
   <ItemGroup Condition="'$(SIGN_TYPE)' == 'real'">
     <FilesToSign Include="@(DropSignedFile)">
       <Authenticode>Microsoft400</Authenticode>
-      <StrongName>StrongName</StrongName>
+      <StrongName>StrongNameSHA2</StrongName>
     </FilesToSign>
   </ItemGroup>
 
@@ -22,7 +22,7 @@
     </FilesToSign>
   </ItemGroup>
 
-  <Target Name="DropFiles" AfterTargets="SignFiles;Build" Condition="'@(DropUnsignedFile);@(DropSignedFile);@(DropThirdPartySignedFile)' != ';;'">
+  <Target Name="DropFiles" AfterTargets="SignFiles;SignPIAFiles;Build" Condition="'@(DropUnsignedFile);@(DropSignedFile);@(DropThirdPartySignedFile)' != ';;'">
     <PropertyGroup>
       <DropDir>$(DropRootDir)</DropDir>
       <DropDir Condition="'$(DropSubDir)'!=''">$(DropRootDir)\$(DropSubDir)</DropDir>

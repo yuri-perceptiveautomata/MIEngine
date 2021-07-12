@@ -6,9 +6,19 @@ steps:
 
 - template: ../tasks/MicroBuildSigningPlugin.yml
 
+- task: UseDotNet@2
+  displayName: 'Use .NET Core sdk'
+  inputs:
+    packageType: sdk
+    version: 5.x
+
 - template: ../steps/BuildSolution.yml
   parameters:
     Configuration: 'Lab.Release'
+    BuildArguments: '/p:Lab=true'
+
+- script: |
+    dotnet publish $(Build.SourcesDirectory)/src/OpenDebugAD7/OpenDebugAD7.csproj -c Lab.Release -r win-x64 --self-contained -o $(Build.BinariesDirectory)/debugAdapters
 
 - template: ../steps/CollectAndPublishBinaries.yml
   parameters:
@@ -20,8 +30,6 @@ steps:
     TargetFolders: '$(Build.StagingDirectory)\bin'
 
 - template: ../steps/CopyAndPublishSymbols.yml
-
-- template: ../steps/ArchivePublicSymbolsAndUploadToFileShare.yml
 
 - template: ../tasks/MicroBuildCleanup.yml
 ...
